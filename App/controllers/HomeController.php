@@ -23,8 +23,6 @@ class HomeController
     public function index()
     {
 
-        inspectAndDie(Validation::string('a', 3));
-
         $listings = $this->db->query('SELECT * FROM listings LIMIT 6')->fetchAll();
 
         loadView('home', [

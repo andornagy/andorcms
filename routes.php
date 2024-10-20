@@ -1,7 +1,13 @@
 <?php
 
 
-$router->get('/',                'HomeController@index');
-$router->get('/listings',        'ListingController@index');
-$router->get('/listings/create', 'ListingController@create');
-$router->get('/listing/{id}',         'ListingController@show');
+$router->get('/',                   'HomeController@index');
+
+$router->get('/listings',           'ListingController@index');
+$router->get('/listings/create',    'ListingController@create');
+$router->get('/listings/edit/{id}', 'ListingController@edit');
+$router->get('/listings/{id}',      'ListingController@show');
+
+$router->put('/listings/{id}',      'ListingController@update');
+$router->post('/listings',          'ListingController@store');
+$router->delete('/listings/{id}',   'ListingController@destroy');
