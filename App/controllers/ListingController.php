@@ -278,4 +278,40 @@ class ListingController
 
         inspectAndDie($updateFields);
     }
+
+    /**
+     * Search listings by keywords/location
+     * 
+     * @param keywords
+     * @param location
+     * 
+     * @return void
+     */
+
+    public function search()
+    {
+        $keywords = $_GET['keywords'] ? sanatize($_GET['keywords']) : '';
+        $location = $_GET['location'] ? sanatize($_GET['location']) : '';
+
+        $query = "SELECT * FROM listings WHERE 
+        (title LIKE :keywords OR 
+        description LIKE :keywords OR 
+        company LIKE :keywords OR 
+        address LIKE :keywords OR
+        tags LIKE :keywords) 
+        AND (city LIKE :location OR state LIKE :location)";
+
+        $params = [
+            'keywords' => "%{$keywords}%",
+            'location' => "%{$location}%"
+        ];
+
+        $listings = $this->db->query($query, $params)->fetchAll();
+
+        loadView('listings/search', [
+            'listings' => $listings,
+            'keywords' => $keywords,
+            'location' => $location
+        ]);
+    }
 }
