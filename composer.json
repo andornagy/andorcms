@@ -1,16 +1,16 @@
 {
-	"name": "andornagy/workopia",
-	"description": "job listing application",
-	"authors": [
-		{
-			"name": "Andor Nagy",
-			"email": "andor@andornagy.me"
-		}
-	],
-	"autoload": {
-		"psr-4": {
-			"Framework\\": "Framework/",
-			"App\\": "App/"
-		}
-	}
+  "name": "andornagy/andorcms",
+  "description": "job listing application",
+  "authors": [
+    {
+      "name": "Andor Nagy",
+      "email": "andor@andornagy.me"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Framework\\": "Framework/",
+      "App\\": "App/"
+    }
+  }
 }
