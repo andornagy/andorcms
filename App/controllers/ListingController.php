@@ -151,7 +151,7 @@ class ListingController
             Session::setFlashMessage('success_message', 'Listing created successfully');
 
 
-            redirect('/listings');
+            redirect('/listings/' . $this->db->conn->lastInsertId());
         }
     }
 

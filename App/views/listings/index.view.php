@@ -23,7 +23,7 @@ $listings = $query->getPosts($args);
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 
             <?php foreach ($listings as $listing) { ?>
-                <!-- Job Listing 1: Software Engineer -->
+
                 <div class="rounded-lg shadow-md bg-white">
                     <div class="p-4">
                         <h2 class="text-xl font-semibold"><?= $listing->title; ?></h2>
@@ -43,7 +43,7 @@ $listings = $query->getPosts($args);
                                 </li>
                             <?php } ?>
                         </ul>
-                        <a href="/listings/<?= $listing->post_id; ?>"
+                        <a href="/listing/<?= $listing->post_id; ?>"
                             class="block w-full text-center px-5 py-2.5 shadow-sm rounded border text-base font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
                             Details
                         </a>
