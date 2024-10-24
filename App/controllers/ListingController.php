@@ -10,11 +10,15 @@ use Framework\Query;
 
 class ListingController
 {
+
+    protected $db;
     protected $query;
 
     public function __construct()
     {
 
+        $config = require basePath('config/db.php');
+        $this->db = new Database($config);
         $this->query = new Query();
     }
 
@@ -26,16 +30,7 @@ class ListingController
     public function index(): void
     {
 
-        $args = [
-            'post_type' => 'listing',
-            'order' => 'ASC'
-        ];
-
-        $listings = $this->query->getPosts($args);
-
-        loadView('listings/index', [
-            'listings' => $listings
-        ]);
+        loadView('listings/index');
     }
 
     /**
@@ -87,15 +82,18 @@ class ListingController
      */
     public function store()
     {
-        $allowedFields = ['title', 'description', 'salary', 'tags', 'company', 'address', 'city', 'state', 'phone', 'email', 'requirements', 'benefits'];
+        $allowedFields = ['title', 'content', 'salary', 'tags', 'company', 'address', 'city', 'state', 'phone', 'email', 'requirements', 'benefits'];
 
         $newListingData = array_intersect_key($_POST, array_flip($allowedFields));
 
+        // Adding missing data.
         $newListingData['user_id'] = Session::get('user')['id'];
+        $newListingData['post_type'] = 'listing';
+        $newListingData['post_status'] = 'published';
 
         $newListingData = array_map('sanatize', $newListingData);
 
-        $requiredFields = ['title', 'description', 'email', 'city', 'salary'];
+        $requiredFields = ['title', 'content', 'email', 'city', 'salary'];
 
         $errors = [];
 
@@ -105,6 +103,15 @@ class ListingController
             }
         };
 
+        // Define the keys that you want to include in the first array
+        $postDataFields = ['title', 'content', 'user_id', 'post_type', 'post_status'];
+
+        // Extract only the keys 'title' and 'content' from the $post array
+        $postData = array_intersect_key($newListingData, array_flip($postDataFields));
+
+        // Extract the remaining keys (those not in $postDataFields)
+        $metaData = array_diff_key($newListingData, array_flip($postDataFields));
+
         if (!empty($errors)) {
             // reload view with errors
             loadView('listings/create', ['errors' => $errors, 'listing' => $newListingData]);
@@ -112,7 +119,7 @@ class ListingController
 
             $fields = [];
 
-            foreach ($newListingData as $field => $value) {
+            foreach ($postData as $field => $value) {
                 $fields[] = $field;
             }
 
@@ -121,20 +128,26 @@ class ListingController
 
             $values = [];
 
-            foreach ($newListingData as $field => $value) {
+            foreach ($postData as $field => $value) {
                 // convert empty string to null
                 if ($value === '') {
-                    $newListingData[$field] = null;
+                    $postData[$field] = null;
                 }
                 $values[] = ':' . $field;
             }
+
 
             $values = implode(', ', $values);
 
 
             $query = "INSERT INTO posts ({$fields}) VALUES ({$values})";
 
-            $this->db->query($query, $newListingData);
+            $this->db->query($query, $postData);
+
+            foreach ($metaData as $key => $value) {
+                $this->query->setPostMeta($key, $value, $this->db->conn->lastInsertId());
+            }
+
             Session::setFlashMessage('success_message', 'Listing created successfully');
 
 
@@ -152,13 +165,13 @@ class ListingController
 
     public function destroy($params)
     {
-        $id = $params['id'];
+        $id = $params['post_id'];
 
         $params = [
-            'id' => $id
+            'post_id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM posts WHERE id = :id', $params)->fetch();
+        $listing = $this->db->query('SELECT * FROM posts WHERE post_id = :post_id', $params)->fetch();
 
         if (!$listing) {
             ErrorController::notFound('Listing not found');
@@ -170,7 +183,7 @@ class ListingController
             return redirect('/listings/' . $id);
         }
 
-        $this->db->query('DELETE FROM listings WHERE id =:id', $params);
+        $this->db->query('DELETE FROM posts WHERE post_id =:post_id', $params);
 
         // set flash message
         Session::setFlashMessage('success_message', 'Listing deleted successfully');

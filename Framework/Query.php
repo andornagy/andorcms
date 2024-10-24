@@ -122,21 +122,58 @@ class Query
     public function getPostMeta($key, $postId)
     {
         $bindParams = [
-            'id' => $postId,
-            'key' => $key
+            'meta_key' => $key,
+            'post_id' => $postId,
         ];
 
-        $query = 'SELECT * FROM post_meta WHERE post_id = :id AND meta_key = :key';
+        $query = 'SELECT meta_value FROM post_meta WHERE post_id = :post_id AND meta_key = :meta_key';
 
         try {
             // Execute the query with bound parameters
             $result = $this->db->query($query, $bindParams)->fetch();
+
+            // If the result is false (i.e., no rows found), return null
+            if ($result === false) {
+                return null;
+            }
+
+            // Extract the meta_value from the result
+            return $result->meta_value;
         } catch (\Exception $e) {
             // Log the exception or handle it as needed
-            error_log($e->getMessage());
-            return []; // Return an empty array in case of an error
+            error_log("Error executing query: " . $e->getMessage());
+            return null; // Return null in case of an error
         }
+    }
 
-        return $result ?: []; // Ensure result is an array
+    /**
+     * Create or Update post metadata by key and post id
+     * 
+     * @param string $key
+     * @param int $postId
+     * 
+     * @return void
+     */
+
+    public function setPostMeta($key, $value, $postId)
+    {
+        $bindParams = [
+            'meta_key' => $key,
+            'post_id' => $postId,
+            'meta_value' => $value,
+        ];
+
+        // The query will insert a new row or update the existing row if the (post_id, meta_key) pair already exists
+        $query = 'INSERT INTO post_meta (post_id, meta_key, meta_value) 
+        VALUES (:post_id, :meta_key, :meta_value) 
+        ON DUPLICATE KEY UPDATE meta_value = :meta_value';
+
+        try {
+            // Execute the query with bound parameters
+            $this->db->query($query, $bindParams);
+        } catch (\Exception $e) {
+            // Log the exception or handle it as needed
+            error_log("Error executing query: " . $e->getMessage());
+        }
     }
 }
