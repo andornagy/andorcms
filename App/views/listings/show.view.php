@@ -4,7 +4,7 @@
 
 <section class="container mx-auto p-4 mt-4">
     <div class="rounded-lg shadow-md bg-white p-3">
-
+        asds
         <?php loadPartial('message') ?>
 
         <div class="flex justify-between items-center">
@@ -15,7 +15,7 @@
             <?php if (Framework\Authorization::isOwner($listing->user_id)): ?>
                 <div class="flex space-x-4 ml-4">
                     <a
-                        href="/listings/edit/<?= $listing->id; ?>"
+                        href="/listings/edit/<?= $listing->post_id; ?>"
                         class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded">Edit</a>
                     <!-- Delete Form -->
                     <form method="POST">

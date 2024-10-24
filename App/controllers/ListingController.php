@@ -6,15 +6,16 @@ use Framework\Database;
 use Framework\Session;
 use Framework\Validation;
 use Framework\Authorization;
+use Framework\Query;
 
 class ListingController
 {
-    protected $db;
+    protected $query;
 
     public function __construct()
     {
-        $config = require basePath('config/db.php');
-        $this->db = new Database($config);
+
+        $this->query = new Query();
     }
 
     /**
@@ -22,10 +23,15 @@ class ListingController
      *
      * @return void
      */
-    public function index()
+    public function index(): void
     {
 
-        $listings = $this->db->query('SELECT * FROM listings ORDER BY created_at DESC')->fetchAll();
+        $args = [
+            'post_type' => 'listing',
+            'order' => 'ASC'
+        ];
+
+        $listings = $this->query->getPosts($args);
 
         loadView('listings/index', [
             'listings' => $listings
@@ -51,13 +57,16 @@ class ListingController
      */
     public function show($params): void
     {
-        $id = $params['id'] ?? '';
 
-        $params = [
-            'id' => $id
+
+        $id = $params['post_id'] ?? '';
+
+        $args = [
+            'post_type' => 'listing',
+            'post_id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM listings WHERE id = :id', $params)->fetch();
+        $listing = $this->query->getPosts($args);
 
         // Check if listing exists
         if (!$listing) {
@@ -123,7 +132,7 @@ class ListingController
             $values = implode(', ', $values);
 
 
-            $query = "INSERT INTO listings ({$fields}) VALUES ({$values})";
+            $query = "INSERT INTO posts ({$fields}) VALUES ({$values})";
 
             $this->db->query($query, $newListingData);
             Session::setFlashMessage('success_message', 'Listing created successfully');
@@ -149,7 +158,7 @@ class ListingController
             'id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM listings WHERE id = :id', $params)->fetch();
+        $listing = $this->db->query('SELECT * FROM posts WHERE id = :id', $params)->fetch();
 
         if (!$listing) {
             ErrorController::notFound('Listing not found');
@@ -183,7 +192,7 @@ class ListingController
             'id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM listings WHERE id = :id', $params)->fetch();
+        $listing = $this->db->query('SELECT * FROM posts WHERE id = :id', $params)->fetch();
 
         // Authorization
         if (!Authorization::isOwner($listing->user_id)) {
@@ -218,7 +227,7 @@ class ListingController
             'id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM listings WHERE id = :id', $params)->fetch();
+        $listing = $this->db->query('SELECT * FROM posts WHERE id = :id', $params)->fetch();
 
         // Check if listing exists
         if (!$listing) {
@@ -266,7 +275,7 @@ class ListingController
 
             $updateFields = implode(', ', $updateFields);
 
-            $updateQuery = "UPDATE listings SET $updateFields WHERE id = :id";
+            $updateQuery = "UPDATE posts SET $updateFields WHERE id = :id";
 
             $updateValues['id'] = $id;
             $this->db->query($updateQuery, $updateValues);
@@ -293,7 +302,7 @@ class ListingController
         $keywords = $_GET['keywords'] ? sanatize($_GET['keywords']) : '';
         $location = $_GET['location'] ? sanatize($_GET['location']) : '';
 
-        $query = "SELECT * FROM listings WHERE 
+        $query = "SELECT * FROM posts WHERE 
         (title LIKE :keywords OR 
         description LIKE :keywords OR 
         company LIKE :keywords OR 

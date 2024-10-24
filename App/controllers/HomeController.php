@@ -4,15 +4,15 @@ namespace App\Controllers;
 
 use Framework\Database;
 use Framework\Validation;
+use Framework\Query;
 
 class HomeController
 {
-    protected $db;
+    protected $query;
 
     public function __construct()
     {
-        $config = require basePath('config/db.php');
-        $this->db = new Database($config);
+        $this->query = new Query();
     }
 
     /**
@@ -22,8 +22,13 @@ class HomeController
      */
     public function index()
     {
+        $params = [
+            'post_type' => 'listing',
+            'limit' => 6,
+            'order' => 'ASC'
+        ];
 
-        $listings = $this->db->query('SELECT * FROM listings ORDER BY created_at DESC LIMIT 6')->fetchAll();
+        $listings = $this->query->getPosts($params);
 
         loadView('home', [
             'listings' => $listings
