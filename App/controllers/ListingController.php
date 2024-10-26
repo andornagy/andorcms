@@ -53,7 +53,6 @@ class ListingController
     public function show($params): void
     {
 
-
         $id = $params['post_id'] ?? '';
 
         $args = [
@@ -86,8 +85,6 @@ class ListingController
 
         $newListingData = array_intersect_key($_POST, array_flip($allowedFields));
 
-        // Adding missing data.
-        $newListingData['user_id'] = Session::get('user')['id'];
         $newListingData['post_type'] = 'listing';
         $newListingData['post_status'] = 'published';
 
@@ -103,6 +100,13 @@ class ListingController
             }
         };
 
+        if (!empty($errors)) {
+            // reload view with errors
+            loadView('listings/create', ['errors' => $errors, 'listing' => $newListingData]);
+
+            exit;
+        }
+
         // Define the keys that you want to include in the first array
         $postDataFields = ['title', 'content', 'user_id', 'post_type', 'post_status'];
 
@@ -112,47 +116,20 @@ class ListingController
         // Extract the remaining keys (those not in $postDataFields)
         $metaData = array_diff_key($newListingData, array_flip($postDataFields));
 
-        if (!empty($errors)) {
-            // reload view with errors
-            loadView('listings/create', ['errors' => $errors, 'listing' => $newListingData]);
-        } else {
+        // inspect($postData);
+        // inspectAndDie($metaData);
 
-            $fields = [];
+        // insert post and get the new ID
+        $post_ID = $this->query->insertPost($postData);
 
-            foreach ($postData as $field => $value) {
-                $fields[] = $field;
-            }
-
-            $fields = implode(', ', $fields);
-
-
-            $values = [];
-
-            foreach ($postData as $field => $value) {
-                // convert empty string to null
-                if ($value === '') {
-                    $postData[$field] = null;
-                }
-                $values[] = ':' . $field;
-            }
-
-
-            $values = implode(', ', $values);
-
-
-            $query = "INSERT INTO posts ({$fields}) VALUES ({$values})";
-
-            $this->db->query($query, $postData);
-
-            foreach ($metaData as $key => $value) {
-                $this->query->setPostMeta($key, $value, $this->db->conn->lastInsertId());
-            }
-
-            Session::setFlashMessage('success_message', 'Listing created successfully');
-
-
-            redirect('/listings/' . $this->db->conn->lastInsertId());
+        foreach ($metaData as $key => $value) {
+            $this->query->setPostMeta($key, $value, $post_ID);
         }
+
+        Session::setFlashMessage('success_message', 'Listing created successfully');
+
+
+        redirect('/listings/' . $post_ID);
     }
 
     /**
@@ -199,13 +176,13 @@ class ListingController
     public function edit($params)
     {
 
-        $id = $params['id'] ?? '';
+        $id = $params['post_id'] ?? '';
 
         $params = [
-            'id' => $id
+            'post_id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM posts WHERE id = :id', $params)->fetch();
+        $listing = $this->db->query('SELECT * FROM posts WHERE post_id = :post_id', $params)->fetch();
 
         // Authorization
         if (!Authorization::isOwner($listing->user_id)) {
@@ -234,13 +211,15 @@ class ListingController
     public function update($params)
     {
 
-        $id = $params['id'] ?? '';
+        $id = $params['post_id'] ?? '';
 
         $params = [
-            'id' => $id
+            'post_id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM posts WHERE id = :id', $params)->fetch();
+        inspectAndDie($params);
+
+        $listing = $this->db->query('SELECT * FROM posts WHERE post_id = :post_id', $params)->fetch();
 
         // Check if listing exists
         if (!$listing) {
@@ -264,6 +243,8 @@ class ListingController
 
         $requiredFields = ['title', 'description', 'email', 'city', 'salary'];
 
+        inspectAndDie($updateValues);
+
         $errors = [];
 
         foreach ($requiredFields as $field) {
@@ -280,25 +261,10 @@ class ListingController
             exit;
         } else {
 
-            $updateFields = [];
-
-            foreach (array_keys($updateValues) as $field) {
-                $updateFields[] = "{$field} = :{$field}";
-            }
-
-            $updateFields = implode(', ', $updateFields);
-
-            $updateQuery = "UPDATE posts SET $updateFields WHERE id = :id";
-
-            $updateValues['id'] = $id;
-            $this->db->query($updateQuery, $updateValues);
-
             $_SESSION['success_message'] = "Listing updated!";
 
             redirect('/listings/' . $id);
         }
-
-        inspectAndDie($updateFields);
     }
 
     /**

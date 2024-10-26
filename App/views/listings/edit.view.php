@@ -19,7 +19,7 @@
                 <input type="text" name="title" placeholder="Job Title" class="w-full px-4 py-2 border rounded focus:outline-none" value="<?= $listing->title ?? '' ?>" />
             </div>
             <div class="mb-4">
-                <textarea name="description" placeholder="Job Description" class="w-full px-4 py-2 border rounded focus:outline-none"><?= $listing->description ?? '' ?></textarea>
+                <textarea name="content" placeholder="Job Description" class="w-full px-4 py-2 border rounded focus:outline-none"><?= $listing->content ?? '' ?></textarea>
             </div>
             <div class="mb-4">
                 <input type="text" name="salary" placeholder="Annual Salary" class="w-full px-4 py-2 border rounded focus:outline-none" value="<?= $listing->salary ?? '' ?>" />

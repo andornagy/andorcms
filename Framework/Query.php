@@ -2,18 +2,10 @@
 
 namespace Framework;
 
-use Framework\Database;
+use App\Controllers\ErrorController;
 
 class Query
 {
-    protected $db;
-
-    public function __construct()
-    {
-        $config = require basePath('config/db.php');
-        $this->db = new Database($config);
-    }
-
 
     /**
      * Get all posts with filters
@@ -23,6 +15,9 @@ class Query
      */
     public function getPosts(array $args = []): object
     {
+
+        global $db;
+
         // Default values
         $defaults = [
             'post_type'     => 'post',
@@ -30,9 +25,9 @@ class Query
             'post_id'       => NULL,    // optional post ID
             'post_author'   => NULL,    // optional author ID
             'limit'         => NULL,    // optional limit
-            'offset'        => null,    // optional offset
+            'offset'        => NULL,    // optional offset
             'order'         => 'DESC',  // optional orders
-            'orderby'       => 'created_at',  // optional orderby
+            'orderby'       => 'post_date',  // optional orderby
         ];
 
         // Merge defaults with the passed parameters
@@ -82,19 +77,20 @@ class Query
         }
 
 
-        // inspectAndDie($query, $bindParams);
-
         try {
             // Execute the query with bound parameters
-            if (!empty($args['post_id']) && $args['post_id'] !== NULL) {
-                $result = $this->db->query($query, $bindParams)->fetch();
+            if (isset($args['post_id']) && $args['post_id'] !== NULL) {
+                $result = $db->query($query, $bindParams)->fetch();
+
                 if ($result === false) {
                     // If no result is found, return an empty stdClass
+                    // inspectAndDie($args);
                     return new \stdClass();
                 }
                 return (object) $result; // Convert array result to object
+
             } else {
-                $results = $this->db->query($query, $bindParams)->fetchAll();
+                $results = $db->query($query, $bindParams)->fetchAll();
                 if (empty($results)) {
                     // If no results are found, return an empty stdClass
                     return new \stdClass();
@@ -111,6 +107,122 @@ class Query
         }
     }
 
+
+    /**
+     * Create post
+     * 
+     * @param array $postData
+     * @return int post ID
+     */
+
+    public function insertPost($postData)
+    {
+        global $db;
+
+        $defaults = [
+            'post_type'     => 'post',
+            'post_status'   => 'draft',
+            'post_id'       => '',
+            'user_id'       => Session::get('user')['id'],
+            'title'         => '',
+            'content'       => '',
+            'post_date'     => date('Y-m-d H:i:s'),
+            'post_modified' => '',
+        ];
+
+        // Merge defaults with the passed parameters
+        $postData = array_merge($defaults, $postData);
+
+        foreach ($postData as $field => $value) {
+            $fields[] = $field;
+        }
+
+        $fields = implode(', ', $fields);
+
+        $values = [];
+
+        foreach ($postData as $field => $value) {
+            // convert empty string to null
+            if ($value === '') {
+                $postData[$field] = null;
+            }
+            $values[] = ':' . $field;
+        }
+
+
+        $values = implode(', ', $values);
+
+        $query = "INSERT INTO posts ({$fields}) VALUES ({$values})";
+
+        // inspect($query);
+        // inspectAndDie($postData);
+
+        $db->query($query, $postData);
+
+        return $db->conn->lastInsertId();
+    }
+
+
+    /**
+     * Update post
+     * 
+     * @param array $postData
+     * @return int post ID
+     * 
+     */
+
+    public function updatePost($postData)
+    {
+
+        global $db;
+
+        $defaults = [
+            'post_type'     => 'post',
+            'post_status'   => 'draft',
+            'post_id'       => '',
+            'user_id'       => Session::get('user')['id'],
+            'title'         => '',
+            'content'       => '',
+            'post_date'     => date('Y-m-d H:i:s'),
+            'post_modified' => date('Y-m-d H:i:s'),  // Update modified date on update
+        ];
+
+        // Merge defaults with the passed parameters
+        $postData = array_merge($defaults, $postData);
+
+        // Ensure we have a post ID to update
+        if (empty($postData['post_id'])) {
+            throw new \Exception("Post ID is required for updating.");
+        }
+
+        $updateFields = [];
+        foreach ($postData as $field => $value) {
+            // Skip post_id in the update set as it’s used for the WHERE clause
+            if ($field !== 'post_id') {
+                // Set up field placeholders for each column
+                $updateFields[] = "{$field} = :{$field}";
+            }
+            // Convert empty strings to null
+            if ($value === '') {
+                $postData[$field] = null;
+            }
+        }
+
+        // Join fields into a string for the SET clause
+        $updateFields = implode(', ', $updateFields);
+
+        // Prepare the UPDATE query
+        $query = "UPDATE posts SET {$updateFields} WHERE post_id = :post_id";
+
+        // Execute the query
+        $db->query($query, $postData);
+
+        return $postData['post_id'];
+    }
+
+
+
+
     /**
      * Get post metadata by key and post id
      * 
@@ -121,6 +233,9 @@ class Query
 
     public function getPostMeta($key, $postId)
     {
+
+        global $db;
+
         $bindParams = [
             'meta_key' => $key,
             'post_id' => $postId,
@@ -130,7 +245,7 @@ class Query
 
         try {
             // Execute the query with bound parameters
-            $result = $this->db->query($query, $bindParams)->fetch();
+            $result = $db->query($query, $bindParams)->fetch();
 
             // If the result is false (i.e., no rows found), return null
             if ($result === false) {
@@ -157,6 +272,8 @@ class Query
 
     public function setPostMeta($key, $value, $postId)
     {
+        global $db;
+
         $bindParams = [
             'meta_key' => $key,
             'post_id' => $postId,
@@ -170,7 +287,7 @@ class Query
 
         try {
             // Execute the query with bound parameters
-            $this->db->query($query, $bindParams);
+            $db->query($query, $bindParams);
         } catch (\Exception $e) {
             // Log the exception or handle it as needed
             error_log("Error executing query: " . $e->getMessage());

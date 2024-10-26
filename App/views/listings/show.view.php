@@ -1,7 +1,6 @@
 <?php loadPartial('head'); ?>
 <?php loadPartial('navbar'); ?>
 <?php loadPartial('top-banner'); ?>
-
 <section class="container mx-auto p-4 mt-4">
     <div class="rounded-lg shadow-md bg-white p-3">
         asds
@@ -33,7 +32,7 @@
         <div class="p-4">
             <h2 class="text-xl font-semibold"><?= $listing->title; ?></h2>
             <p class="text-gray-700 text-lg mt-2">
-                <?= $listing->description; ?>
+                <?= $listing->content; ?>
             </p>
             <ul class="my-4 bg-gray-100 p-4">
                 <li class="mb-2"><strong>Salary:</strong> <?= formatSalaray($listing->salary); ?></li>
