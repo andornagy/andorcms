@@ -11,7 +11,7 @@ class Query
      * Get all posts with filters
      * 
      * @param array $params associative array of column => value
-     * @return array of posts
+     * @return object of posts
      */
     public function getPosts(array $args = []): object
     {
@@ -122,44 +122,73 @@ class Query
         $defaults = [
             'post_type'     => 'post',
             'post_status'   => 'draft',
-            'post_id'       => '',
             'user_id'       => Session::get('user')['id'],
             'title'         => '',
             'content'       => '',
             'post_date'     => date('Y-m-d H:i:s'),
-            'post_modified' => '',
+            'post_modified' => date('Y-m-d H:i:s'),
         ];
 
         // Merge defaults with the passed parameters
         $postData = array_merge($defaults, $postData);
 
-        foreach ($postData as $field => $value) {
-            $fields[] = $field;
-        }
-
-        $fields = implode(', ', $fields);
-
-        $values = [];
-
-        foreach ($postData as $field => $value) {
-            // convert empty string to null
-            if ($value === '') {
-                $postData[$field] = null;
+        // Determine whether to insert or update based on post_id
+        if (!empty($postData['post_id'])) {
+            // UPDATE existing post
+            $updateFields = [];
+            foreach ($postData as $field => $value) {
+                // Skip post_id in the update set as it’s used for the WHERE clause
+                if ($field !== 'post_id') {
+                    $updateFields[] = "{$field} = :{$field}";
+                }
+                // Convert empty strings to null
+                if ($value === '') {
+                    $postData[$field] = null;
+                }
             }
-            $values[] = ':' . $field;
+
+            // Join fields into a string for the SET clause
+            $updateFields = implode(', ', $updateFields);
+
+            // Prepare the UPDATE query
+            $query = "UPDATE posts SET {$updateFields} WHERE post_id = :post_id";
+
+            // Execute the query
+            $db->query($query, $postData);
+
+            return $postData['post_id'];
+        } else {
+            // INSERT new post
+            $insertFields = [];
+            $insertPlaceholders = [];
+            foreach ($postData as $field => $value) {
+                // Skip post_id on insert since it’s usually auto-generated
+                if ($field !== 'post_id') {
+                    $insertFields[] = $field;
+                    $insertPlaceholders[] = ":{$field}";
+                }
+                // Convert empty strings to null
+                if ($value === '') {
+                    $postData[$field] = null;
+                }
+            }
+
+            // Join fields and placeholders for the INSERT clause
+            $insertFields = implode(', ', $insertFields);
+            $insertPlaceholders = implode(', ', $insertPlaceholders);
+
+            // Prepare the INSERT query
+            $query = "INSERT INTO posts ({$insertFields}) VALUES ({$insertPlaceholders})";
+
+            // inspect($query);
+            // inspectAndDie($postData);
+
+            // Execute the query
+            $db->query($query, $postData);
+
+            // Return the ID of the newly inserted post
+            return $db->conn->lastInsertId();
         }
-
-
-        $values = implode(', ', $values);
-
-        $query = "INSERT INTO posts ({$fields}) VALUES ({$values})";
-
-        // inspect($query);
-        // inspectAndDie($postData);
-
-        $db->query($query, $postData);
-
-        return $db->conn->lastInsertId();
     }
 
 
@@ -258,6 +287,45 @@ class Query
             // Log the exception or handle it as needed
             error_log("Error executing query: " . $e->getMessage());
             return null; // Return null in case of an error
+        }
+    }
+
+
+    /**
+     * Get all post metadata by post id
+     * 
+     * @param int $postId
+     * @return object
+     */
+
+    public function getAllPostMeta($postId)
+    {
+        global $db;
+
+        $params = [
+            'post_id' => $postId,
+        ];
+
+        $query = 'SELECT meta_key, meta_value FROM post_meta WHERE post_id = :post_id';
+
+        try {
+            $results = $db->query($query, $params)->fetchAll();
+
+            if ($results === false) {
+                return null;
+            }
+
+            // Create an object to store meta_key and meta_value pairs
+            $metaObject = new \stdClass();
+            foreach ($results as $row) {
+                // Since $row is already an object, access its properties directly
+                $metaObject->{$row->meta_key} = $row->meta_value;
+            }
+
+            return $metaObject;
+        } catch (\Exception $exception) {
+            error_log("Error executing query: " . $exception->getMessage());
+            return null;
         }
     }
 

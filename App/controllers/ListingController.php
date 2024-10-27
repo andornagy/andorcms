@@ -61,6 +61,7 @@ class ListingController
         ];
 
         $listing = $this->query->getPosts($args);
+        $postMeta = $this->query->getAllPostMeta($id);
 
         // Check if listing exists
         if (!$listing) {
@@ -69,7 +70,8 @@ class ListingController
         }
 
         loadView('listings/show', [
-            'listing' => $listing
+            'listing' => $listing,
+            'postMeta' => $postMeta
         ]);
     }
 
@@ -178,11 +180,15 @@ class ListingController
 
         $id = $params['post_id'] ?? '';
 
-        $params = [
+        $args = [
+            'post_type' => 'listing',
             'post_id' => $id
         ];
 
-        $listing = $this->db->query('SELECT * FROM posts WHERE post_id = :post_id', $params)->fetch();
+        $listing = $this->query->getPosts($args);
+        $postMeta = $this->query->getAllPostMeta($id);
+
+        // inspectAndDie($postMeta);
 
         // Authorization
         if (!Authorization::isOwner($listing->user_id)) {
@@ -197,7 +203,8 @@ class ListingController
         }
 
         loadView('listings/edit', [
-            'listing' => $listing
+            'listing' => $listing,
+            'postMeta' => $postMeta
         ]);
     }
 
@@ -214,10 +221,10 @@ class ListingController
         $id = $params['post_id'] ?? '';
 
         $params = [
-            'post_id' => $id
+            'post_id' => $id,
         ];
 
-        inspectAndDie($params);
+        // inspectAndDie($params);
 
         $listing = $this->db->query('SELECT * FROM posts WHERE post_id = :post_id', $params)->fetch();
 
@@ -233,7 +240,7 @@ class ListingController
             return redirect('/listings/' . $id);
         }
 
-        $allowedFields = ['title', 'description', 'salary', 'tags', 'company', 'address', 'city', 'state', 'phone', 'email', 'requirements', 'benefits'];
+        $allowedFields = ['title', 'content', 'post_id', 'salary', 'tags', 'company', 'address', 'city', 'state', 'phone', 'email', 'requirements', 'benefits'];
 
         $updateValues = [];
 
@@ -241,9 +248,7 @@ class ListingController
 
         $updateValues = array_map('sanatize', $updateValues);
 
-        $requiredFields = ['title', 'description', 'email', 'city', 'salary'];
-
-        inspectAndDie($updateValues);
+        $requiredFields = ['title', 'content', 'email', 'city', 'salary'];
 
         $errors = [];
 
@@ -259,12 +264,31 @@ class ListingController
                 'errors' => $errors
             ]);
             exit;
-        } else {
-
-            $_SESSION['success_message'] = "Listing updated!";
-
-            redirect('/listings/' . $id);
         }
+
+        // Define the keys that you want to include in the first array
+        $postDataFields = ['title', 'content', 'post_id', 'user_id', 'post_type', 'post_status'];
+
+        // Extract only the keys 'title' and 'content' from the $post array
+        $postData = array_intersect_key($updateValues, array_flip($postDataFields));
+
+        $postData['post_id'] = $id;
+        $postData['post_status'] = 'published';
+        $postData['post_type'] = 'listing';
+
+        // Extract the remaining keys (those not in $postDataFields)
+        $metaData = array_diff_key($updateValues, array_flip($postDataFields));
+
+        // insert post and get the new ID
+        $this->query->insertPost($postData);
+
+        foreach ($metaData as $key => $value) {
+            $this->query->setPostMeta($key, $value, $id);
+        }
+
+        $_SESSION['success_message'] = "Listing updated!";
+
+        redirect('/listings/' . $id);
     }
 
     /**

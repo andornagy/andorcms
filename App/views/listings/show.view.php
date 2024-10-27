@@ -3,7 +3,7 @@
 <?php loadPartial('top-banner'); ?>
 <section class="container mx-auto p-4 mt-4">
     <div class="rounded-lg shadow-md bg-white p-3">
-        asds
+
         <?php loadPartial('message') ?>
 
         <div class="flex justify-between items-center">
@@ -35,15 +35,15 @@
                 <?= $listing->content; ?>
             </p>
             <ul class="my-4 bg-gray-100 p-4">
-                <li class="mb-2"><strong>Salary:</strong> <?= formatSalaray($listing->salary); ?></li>
+                <li class="mb-2"><strong>Salary:</strong> <?= formatSalaray($postMeta->salary); ?></li>
                 <li class="mb-2">
-                    <strong>Location:</strong> <?= $listing->city; ?>, <?= $listing->state; ?>
+                    <strong>Location:</strong> <?= $postMeta->city; ?>, <?= $postMeta->state; ?>
 
                 </li>
 
-                <?php if (!empty($listing->tags)) { ?>
+                <?php if (!empty($postMeta->tags)) { ?>
                     <li class="mb-2">
-                        <strong>Tags: <?= $listing->tags; ?>
+                        <strong>Tags: <?= $postMeta->tags; ?>
                     </li>
                 <?php } ?>
             </ul>
@@ -58,17 +58,17 @@
             Job Requirements
         </h3>
         <p>
-            <?= $listing->requirements; ?>
+            <?= $postMeta->requirements; ?>
         </p>
         <h3 class="text-lg font-semibold mt-4 mb-2 text-blue-500">Benefits</h3>
-        <p><?= $listing->benefits; ?></p>
+        <p><?= $postMeta->benefits; ?></p>
     </div>
     <p class="my-5">
         Put "Job Application" as the subject of your email and attach your
         resume.
     </p>
     <a
-        href="mailto:<?= $listing->email; ?>"
+        href="mailto:<?= $postMeta->email; ?>"
         class="block w-full text-center px-5 py-2.5 shadow-sm rounded border text-base font-medium cursor-pointer text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
         Apply Now
     </a>
